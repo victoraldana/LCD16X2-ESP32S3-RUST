@@ -122,14 +122,12 @@ fn main() -> Result<(), EspError> {
         })
         .expect("Error al iniciar la tarea de la LCD");
 
-    let mut contador = 0;
-
-    loop {
-        FreeRtos::delay_ms(50);
-
-        contador += 1;
-        if contador == 20 {
-            contador = 0;
+    //TAERA PARA ACTUALIZAR LA HORA
+    thread::Builder::new()
+        .name("tarea_reloj".to_string())
+        .stack_size(4096)
+        .spawn(move || loop {
+            FreeRtos::delay_ms(1000);
 
             let mut h = HORA.load(Ordering::Relaxed);
             let mut m = MINUTO.load(Ordering::Relaxed);
@@ -154,7 +152,11 @@ fn main() -> Result<(), EspError> {
 
             log::info!("{:02}:{:02}:{:02}", h, m, s);
             ACTUALIZAR_LCD.store(true, Ordering::Relaxed);
-        }
+        })
+        .expect("Error al iniciar la tarea del reloj");
+
+    loop {
+        FreeRtos::delay_ms(50);
 
         if BOTON_1_PRESIONADO.swap(false, Ordering::Relaxed) {
             let mut m = MODO.load(Ordering::Relaxed);
